@@ -11,6 +11,7 @@ import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:open_file/open_file.dart';
+// import 'globals.dart' as globals;
 
 void main() {
   runApp(const MyApp());
@@ -41,6 +42,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  get globals => null;
+
   @override
   Widget build(BuildContext context) {
     // ignore: unused_local_variable
@@ -99,9 +102,10 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           const SizedBox(height: 35),
           const Text(
-            'Your result is: ',
+            'Your result is:',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
+          Text(globals.toString())
         ],
       ),
     );
@@ -120,16 +124,26 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _plateCall(String img64) async {
-    var url = Uri.parse('https://api.platerecognizer.com/v1/plate-reader/');
-    var response = await http.post(url, body: {
-      'upload': img64,
-    }, headers: {
-      "Authorization": "Token 497717d5ef388c529bc0eaa84f6924baa3a4acbf"
+    setState(() async {
+      var url = Uri.parse('https://api.platerecognizer.com/v1/plate-reader/');
+      var response = await http.post(url, body: {
+        'upload': img64,
+        'regions': 'in',
+      }, headers: {
+        "Authorization": "Token 497717d5ef388c529bc0eaa84f6924baa3a4acbf"
+      });
+      // ignore: avoid_print
+      print('Response status: ${response.statusCode}');
+      // ignore: avoid_print
+      print('Response body: ${response.body}');
+      final responseJson = json.decode(response.body);
+      // ignore: avoid_print, unnecessary_brace_in_string_interps
+      print('Response Vehicle: ${responseJson["results"][0]["vehicle"]}');
+      // ignore: avoid_print
+      final globals = responseJson["results"][0]["plate"];
+      // ignore: avoid_print
+      print('Response plate: $globals');
     });
-    // ignore: avoid_print
-    print('Response status: ${response.statusCode}');
-    // ignore: avoid_print
-    print('Response body: ${response.body}');
   }
 
   Future<void> _openFile(PlatformFile file) async {
@@ -148,12 +162,31 @@ class _MyHomePageState extends State<MyHomePage> {
       if (image == null) return;
 
       final imageTemporary = Io.File(image.path);
-      debugPrint(image.path);
+      debugPrint(imageTemporary.toString());
       setState(() => this.image = imageTemporary);
+      final bytes = Io.File(image.path.toString()).readAsBytesSync();
+      String img64 = base64Encode(bytes);
+      debugPrint(image.path.toString());
+      var url = Uri.parse('https://api.platerecognizer.com/v1/plate-reader/');
+      var response = await http.post(url, body: {
+        'upload': img64,
+      }, headers: {
+        "Authorization": "Token 497717d5ef388c529bc0eaa84f6924baa3a4acbf"
+      });
+      // ignore: avoid_print
+      print('Response status: ${response.statusCode}');
+      // ignore: avoid_print
+      print('Response body: ${response.body}');
+      final responseJson = json.decode(response.body);
+      // ignore: avoid_print, unnecessary_brace_in_string_interps
+      print('Response Vehicle: ${responseJson["results"][0]["vehicle"]}');
+      // ignore: avoid_print
+      final globals = responseJson["results"][0]["plate"];
+      // ignore: avoid_print
+      print('Response plate: $globals');
     } on PlatformException catch (e) {
       // ignore: avoid_print
       print('Failed to catch image: $e');
     }
-    // _plateCall(img64);
   }
 }
