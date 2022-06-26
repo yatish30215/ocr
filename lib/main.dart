@@ -23,7 +23,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.teal,
       ),
-      home: const MyHomePage(title: 'Image to Text OCR'),
+      home: const MyHomePage(title: 'Number Plate OCR'),
       debugShowCheckedModeBanner: false,
     );
   }
@@ -47,7 +47,7 @@ class _MyHomePageState extends State<MyHomePage> {
     var widget;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Image to text OCR'),
+        title: const Text('Number Plate OCR'),
       ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.start,
@@ -101,15 +101,30 @@ class _MyHomePageState extends State<MyHomePage> {
           const SizedBox(height: 35),
           const Text(
             'Your result is:',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            style: TextStyle(fontWeight: FontWeight.w400, fontSize: 18),
           ),
-          Text(
-            globals,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          )
+          // Text(
+          //   globals,
+          //   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          // ),
+          FutureBuilder(
+              builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
+            if (!snapshot.hasData) {
+              return Text(globals,
+                  style: const TextStyle(
+                      fontSize: 20, fontWeight: FontWeight.bold));
+            } else {
+              return const Text('');
+            }
+          })
         ],
       ),
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
   }
 
   Io.File? image;
@@ -134,11 +149,12 @@ class _MyHomePageState extends State<MyHomePage> {
       print('Response status: ${response.statusCode}');
       // ignore: avoid_print
       print('Response body: ${response.body}');
-      final responseJson = json.decode(response.body);
+      // final responseJson = json.decode(response.body);
       // ignore: avoid_print, unnecessary_brace_in_string_interps
-      print('Response Vehicle: ${responseJson["results"][0]["vehicle"]}');
+      // print('Response Vehicle: ${responseJson["results"][0]["vehicle"]}');
       // ignore: avoid_print
       setState(() {
+        final responseJson = json.decode(response.body);
         globals = '';
         globals = responseJson["results"][0]["plate"];
         // ignore: avoid_print
@@ -173,11 +189,12 @@ class _MyHomePageState extends State<MyHomePage> {
       print('Response status: ${response.statusCode}');
       // ignore: avoid_print
       print('Response body: ${response.body}');
-      final responseJson = json.decode(response.body);
+      // final responseJson = json.decode(response.body);
       // ignore: avoid_print, unnecessary_brace_in_string_interps
-      print('Response Vehicle: ${responseJson["results"][0]["vehicle"]}');
+      // print('Response Vehicle: ${responseJson["results"][0]["vehicle"]}');
       // ignore: avoid_print
       setState(() {
+        final responseJson = json.decode(response.body);
         globals = '';
         globals = responseJson["results"][0]["plate"];
         // ignore: avoid_print
