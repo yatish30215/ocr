@@ -1,5 +1,7 @@
 // ignore_for_file: unnecessary_string_escapes, prefer_typing_uninitialized_variables
 import 'dart:convert';
+// import 'dart:html';
+// import 'dart:html';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 // ignore: depend_on_referenced_packages
@@ -9,6 +11,7 @@ import 'dart:io' as Io;
 // ignore: unused_import
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
+// import 'package:path/path.dart';
 
 void main() {
   runApp(const MyApp());
@@ -40,6 +43,12 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   String globals = '';
+
+  @override
+  void initState() {
+    super.initState();
+    globals;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -90,7 +99,6 @@ class _MyHomePageState extends State<MyHomePage> {
                   minimumSize: const Size(100, 50), //////// HERE
                 ),
                 onPressed: () {
-                  // _pickFile();
                   pickImage();
                 },
                 icon: const Icon(Icons.upload),
@@ -104,21 +112,24 @@ class _MyHomePageState extends State<MyHomePage> {
             style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
           ),
           const SizedBox(height: 10),
-          // Text(
-          //   globals,
-          //   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          // ),
-          // // globals = ''
-          //     ? const Text('Please select the image')
           FutureBuilder(
               // future: globals,
               builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
-            if (!snapshot.hasData) {
-              return Text(globals,
-                  style: const TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.bold));
-            } else {
+            if (snapshot.connectionState == ConnectionState.waiting) {
               return const CircularProgressIndicator();
+            } else if (snapshot.hasError) {
+              return Text(
+                snapshot.error.toString(),
+              );
+            } else {
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(globals,
+                      style: const TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.bold)),
+                ],
+              );
             }
           })
         ],
@@ -126,13 +137,10 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  @override
-  void initState() {
-    super.initState();
-  }
-
   Io.File? image;
   Future clickImage() async {
+    var client = http.Client();
+
     try {
       final image = await ImagePicker().pickImage(source: ImageSource.camera);
       if (image == null) return;
@@ -144,37 +152,36 @@ class _MyHomePageState extends State<MyHomePage> {
       String img64 = base64Encode(bytes);
       debugPrint(image.path.toString());
 
-      var url = Uri.parse('https://api.platerecognizer.com/v1/plate-reader/');
-      debugPrint('start');
-      debugPrint(img64);
-      debugPrint('end');
-      var response = await http.post(url, body: {
-        'upload': img64,
-      }, headers: {
-        "Authorization": "Token 497717d5ef388c529bc0eaa84f6924baa3a4acbf"
-      });
-      // ignore: avoid_print
-      print('Response status: ${response.statusCode}');
-      // ignore: avoid_print
-      print('Response body: ${response.body}');
-      // final responseJson = json.decode(response.body);
-      // ignore: avoid_print, unnecessary_brace_in_string_interps
-      // print('Response Vehicle: ${responseJson["results"][0]["vehicle"]}');
-      // ignore: avoid_print
-      setState(() {
-        final responseJson = json.decode(response.body);
-        globals = '';
-        globals = responseJson["results"][0]["plate"];
-        // ignore: avoid_print
-        print('Response plate: $globals');
-      });
+      try {
+        var url = Uri.parse('https://api.platerecognizer.com/v1/plate-reader/');
+        debugPrint('start');
+        debugPrint(img64);
+        debugPrint('end');
+        var response = await client.post(url, body: {
+          'upload': img64,
+        }, headers: {
+          "Authorization": "Token 497717d5ef388c529bc0eaa84f6924baa3a4acbf"
+        });
+        debugPrint('Response status: ${response.statusCode}');
+        debugPrint('Response body: ${response.body}');
+        setState(() {
+          final responseJson = json.decode(response.body);
+          globals = '';
+          globals = responseJson["results"][0]["plate"];
+          debugPrint('Response plate: $globals');
+        });
+      } on PlatformException catch (e) {
+        debugPrint('Failed to parse: $e');
+      } finally {
+        client.close();
+      }
     } on PlatformException catch (e) {
-      // ignore: avoid_print
-      print('Failed to catch image: $e');
+      debugPrint('Failed to catch image: $e');
     }
   }
 
   Future pickImage() async {
+    await Future.delayed(const Duration(seconds: 1));
     try {
       final image = await ImagePicker().pickImage(source: ImageSource.gallery);
       if (image == null) return;
@@ -195,24 +202,17 @@ class _MyHomePageState extends State<MyHomePage> {
       }, headers: {
         "Authorization": "Token 497717d5ef388c529bc0eaa84f6924baa3a4acbf"
       });
-      // ignore: avoid_print
-      print('Response status: ${response.statusCode}');
-      // ignore: avoid_print
-      print('Response body: ${response.body}');
-      // final responseJson = json.decode(response.body);
-      // ignore: avoid_print, unnecessary_brace_in_string_interps
-      // print('Response Vehicle: ${responseJson["results"][0]["vehicle"]}');
-      // ignore: avoid_print
+      debugPrint('Response status: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
+
       setState(() {
         final responseJson = json.decode(response.body);
         globals = '';
         globals = responseJson["results"][0]["plate"];
-        // ignore: avoid_print
-        print('Response plate: $globals');
+        debugPrint('Response plate: $globals');
       });
     } on PlatformException catch (e) {
-      // ignore: avoid_print
-      print('Failed to catch image: $e');
+      debugPrint('Failed to catch image: $e');
     }
   }
 }
