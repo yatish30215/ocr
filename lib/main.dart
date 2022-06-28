@@ -101,20 +101,24 @@ class _MyHomePageState extends State<MyHomePage> {
           const SizedBox(height: 35),
           const Text(
             'Your result is:',
-            style: TextStyle(fontWeight: FontWeight.w400, fontSize: 18),
+            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
           ),
+          const SizedBox(height: 10),
           // Text(
           //   globals,
           //   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           // ),
+          // // globals = ''
+          //     ? const Text('Please select the image')
           FutureBuilder(
+              // future: globals,
               builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
             if (!snapshot.hasData) {
               return Text(globals,
                   style: const TextStyle(
                       fontSize: 20, fontWeight: FontWeight.bold));
             } else {
-              return const Text('');
+              return const CircularProgressIndicator();
             }
           })
         ],
@@ -139,7 +143,11 @@ class _MyHomePageState extends State<MyHomePage> {
       final bytes = Io.File(image.path.toString()).readAsBytesSync();
       String img64 = base64Encode(bytes);
       debugPrint(image.path.toString());
+
       var url = Uri.parse('https://api.platerecognizer.com/v1/plate-reader/');
+      debugPrint('start');
+      debugPrint(img64);
+      debugPrint('end');
       var response = await http.post(url, body: {
         'upload': img64,
       }, headers: {
@@ -160,8 +168,6 @@ class _MyHomePageState extends State<MyHomePage> {
         // ignore: avoid_print
         print('Response plate: $globals');
       });
-      // ignore: avoid_print
-      // print('Response plate: $globals');
     } on PlatformException catch (e) {
       // ignore: avoid_print
       print('Failed to catch image: $e');
@@ -179,7 +185,11 @@ class _MyHomePageState extends State<MyHomePage> {
       final bytes = Io.File(image.path.toString()).readAsBytesSync();
       String img64 = base64Encode(bytes);
       debugPrint(image.path.toString());
+
       var url = Uri.parse('https://api.platerecognizer.com/v1/plate-reader/');
+      debugPrint('start');
+      debugPrint(img64);
+      debugPrint('end');
       var response = await http.post(url, body: {
         'upload': img64,
       }, headers: {
