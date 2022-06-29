@@ -4,6 +4,7 @@ import 'dart:convert';
 // import 'dart:html';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_native_image/flutter_native_image.dart';
 // ignore: depend_on_referenced_packages
 import 'package:http/http.dart' as http;
 // ignore: library_prefixes
@@ -11,7 +12,8 @@ import 'dart:io' as Io;
 // ignore: unused_import
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
-// import 'package:path/path.dart';
+import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -107,6 +109,15 @@ class _MyHomePageState extends State<MyHomePage> {
             ],
           ),
           const SizedBox(height: 35),
+          image != null
+              ? Image.file(
+                  image!,
+                  width: 200,
+                  height: 200,
+                  fit: BoxFit.cover,
+                )
+              : const SizedBox(height: 20),
+          const SizedBox(height: 20),
           const Text(
             'Your result is:',
             style: TextStyle(fontWeight: FontWeight.w500, fontSize: 18),
@@ -139,15 +150,17 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Io.File? image;
   Future clickImage() async {
+    await Future.delayed(const Duration(seconds: 1));
     var client = http.Client();
 
     try {
-      final image = await ImagePicker().pickImage(source: ImageSource.camera);
+      final image = await ImagePicker()
+          .pickImage(source: ImageSource.camera, imageQuality: 25);
       if (image == null) return;
 
-      final imageTemporary = Io.File(image.path);
-      debugPrint(imageTemporary.toString());
-      setState(() => this.image = imageTemporary);
+      final imagePermanent = await saveImagePermanently(image.path);
+      debugPrint(imagePermanent.toString());
+      setState(() => this.image = imagePermanent);
       final bytes = Io.File(image.path.toString()).readAsBytesSync();
       String img64 = base64Encode(bytes);
       debugPrint(image.path.toString());
@@ -186,9 +199,10 @@ class _MyHomePageState extends State<MyHomePage> {
       final image = await ImagePicker().pickImage(source: ImageSource.gallery);
       if (image == null) return;
 
-      final imageTemporary = Io.File(image.path);
-      debugPrint(imageTemporary.toString());
-      setState(() => this.image = imageTemporary);
+      // final imageTemporary = Io.File(image.path);
+      final imagePermanent = await saveImagePermanently(image.path);
+      debugPrint(imagePermanent.toString());
+      setState(() => this.image = imagePermanent);
       final bytes = Io.File(image.path.toString()).readAsBytesSync();
       String img64 = base64Encode(bytes);
       debugPrint(image.path.toString());
@@ -214,5 +228,21 @@ class _MyHomePageState extends State<MyHomePage> {
     } on PlatformException catch (e) {
       debugPrint('Failed to catch image: $e');
     }
+  }
+
+  Future<Io.File> saveImagePermanently(String imagePath) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final name = basename(imagePath);
+    final image = Io.File('${directory.path}/$name');
+
+    return Io.File(imagePath).copy(image.path);
+  }
+
+  Future<Io.File> compressFile(Io.File file) async {
+    Io.File compressedFile = await FlutterNativeImage.compressImage(
+      file.path,
+      quality: 5,
+    );
+    return compressedFile;
   }
 }
