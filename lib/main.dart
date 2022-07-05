@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_image/flutter_native_image.dart';
+// import 'package:flutter_spinkit/flutter_spinkit.dart';
 // ignore: depend_on_referenced_packages
 import 'package:http/http.dart' as http;
 // ignore: library_prefixes
@@ -43,8 +44,9 @@ class MyHomePage extends StatefulWidget {
   State<MyHomePage> createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   String globals = '';
+  late final spinkit;
 
   @override
   void initState() {
@@ -56,6 +58,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     // ignore: unused_local_variable
     var widget;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Number Plate OCR'),
@@ -112,8 +115,8 @@ class _MyHomePageState extends State<MyHomePage> {
           image != null
               ? Image.file(
                   image!,
-                  width: 200,
-                  height: 200,
+                  width: 300,
+                  height: 300,
                   fit: BoxFit.cover,
                 )
               : const SizedBox(height: 20),
@@ -124,15 +127,9 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           const SizedBox(height: 10),
           FutureBuilder(
-              // future: globals,
               builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const CircularProgressIndicator();
-            } else if (snapshot.hasError) {
-              return Text(
-                snapshot.error.toString(),
-              );
-            } else {
+            if (!snapshot.hasData ||
+                snapshot.connectionState == ConnectionState.waiting) {
               return Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -141,13 +138,47 @@ class _MyHomePageState extends State<MyHomePage> {
                           fontSize: 20, fontWeight: FontWeight.bold)),
                 ],
               );
+            } else if (snapshot.hasError) {
+              return Text(
+                snapshot.error.toString(),
+              );
+            } else {
+              return const CircularProgressIndicator();
             }
-          })
+          }),
+          const SizedBox(height: 10),
+          ElevatedButton(
+            onPressed: clear,
+            style: ElevatedButton.styleFrom(
+              primary: const Color.fromARGB(255, 199, 4, 4),
+              onPrimary: Colors.white,
+              shadowColor: const Color.fromARGB(255, 240, 105, 105),
+              elevation: 3,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(5.0)),
+              minimumSize: const Size(60, 30), //////// HERE
+            ),
+            child: const Text('Clear'),
+          ),
         ],
       ),
     );
   }
 
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+// clear image and result function
+  void clear() {
+    setState(() {
+      globals = '';
+      image = null;
+    });
+  }
+
+// click image function
   Io.File? image;
   Future clickImage() async {
     await Future.delayed(const Duration(seconds: 1));
@@ -193,6 +224,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+// upload image function
   Future pickImage() async {
     await Future.delayed(const Duration(seconds: 1));
     try {
@@ -230,6 +262,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+// Save  image function
   Future<Io.File> saveImagePermanently(String imagePath) async {
     final directory = await getApplicationDocumentsDirectory();
     final name = basename(imagePath);
@@ -238,6 +271,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Io.File(imagePath).copy(image.path);
   }
 
+// compress image function
   Future<Io.File> compressFile(Io.File file) async {
     Io.File compressedFile = await FlutterNativeImage.compressImage(
       file.path,
