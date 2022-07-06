@@ -1,17 +1,15 @@
 // ignore_for_file: unnecessary_string_escapes, prefer_typing_uninitialized_variables
 import 'dart:convert';
-// import 'dart:html';
-// import 'dart:html';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_image/flutter_native_image.dart';
-// import 'package:flutter_spinkit/flutter_spinkit.dart';
 // ignore: depend_on_referenced_packages
 import 'package:http/http.dart' as http;
 // ignore: library_prefixes
 import 'dart:io' as Io;
 // ignore: unused_import
 import 'package:camera/camera.dart';
+// import 'package:http_parser/http_parser.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -206,8 +204,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         }, headers: {
           "Authorization": "Token 497717d5ef388c529bc0eaa84f6924baa3a4acbf"
         });
+
         debugPrint('Response status: ${response.statusCode}');
         debugPrint('Response body: ${response.body}');
+
         setState(() {
           final responseJson = json.decode(response.body);
           globals = '';
@@ -228,7 +228,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   Future pickImage() async {
     await Future.delayed(const Duration(seconds: 1));
     try {
-      final image = await ImagePicker().pickImage(source: ImageSource.gallery);
+      final image = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        // imageQuality: 25,
+      );
       if (image == null) return;
 
       // final imageTemporary = Io.File(image.path);
@@ -248,15 +251,40 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       }, headers: {
         "Authorization": "Token 497717d5ef388c529bc0eaa84f6924baa3a4acbf"
       });
+
       debugPrint('Response status: ${response.statusCode}');
       debugPrint('Response body: ${response.body}');
 
+      //get the converted text
       setState(() {
         final responseJson = json.decode(response.body);
-        globals = '';
-        globals = responseJson["results"][0]["plate"];
-        debugPrint('Response plate: $globals');
+        if (responseJson["results"].isEmpty!) {
+          globals = 'Unable to read result';
+        } else {
+          globals = '';
+          globals = responseJson["results"][0]["plate"];
+          debugPrint('Response plate: $globals');
+        }
       });
+
+      //upload data to server
+      try {
+        if (response.statusCode == 201) {
+          String uploadurl =
+              "https://npr.varainfrovate.com/upload-images/upload.php";
+          var result = await http.post((Uri.parse(uploadurl)),
+              body: {'image': img64, 'image_name': 'vpbai'});
+          debugPrint(result.body);
+        } else {
+          debugPrint("Error during connection to server");
+          //there is error during connecting to server,
+          //status code might be 404 = url not found
+        }
+      } catch (e) {
+        debugPrint("Error during converting to Base64");
+        // print(e);
+        //there is error during converting file image to base64 encoding.
+      }
     } on PlatformException catch (e) {
       debugPrint('Failed to catch image: $e');
     }
