@@ -13,6 +13,7 @@ import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
+// import 'package:motion_toast/motion_toast.dart';
 
 void main() {
   runApp(const MyApp());
@@ -193,13 +194,14 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       final bytes = Io.File(image.path.toString()).readAsBytesSync();
       String img64 = base64Encode(bytes);
       debugPrint(image.path.toString());
-
+      var response;
+      var responseJson;
       try {
         var url = Uri.parse('https://api.platerecognizer.com/v1/plate-reader/');
         debugPrint('start');
         debugPrint(img64);
         debugPrint('end');
-        var response = await client.post(url, body: {
+        response = await client.post(url, body: {
           'upload': img64,
         }, headers: {
           "Authorization": "Token 497717d5ef388c529bc0eaa84f6924baa3a4acbf"
@@ -209,7 +211,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         debugPrint('Response body: ${response.body}');
 
         setState(() {
-          final responseJson = json.decode(response.body);
+          responseJson = json.decode(response.body);
           globals = '';
           globals = responseJson["results"][0]["plate"];
           debugPrint('Response plate: $globals');
@@ -219,6 +221,28 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       } finally {
         client.close();
       }
+
+      //upload data to server
+      try {
+        if (response.statusCode == 201) {
+          String uploadurl =
+              "https://npr.varainfrovate.com/upload-images/upload.php";
+          var result = await http.post((Uri.parse(uploadurl)), body: {
+            'image': img64,
+            'image_name': globals,
+            'data': globals,
+          });
+          debugPrint(result.body);
+        } else {
+          debugPrint("Error during connection to server");
+          //there is error during connecting to server,
+          //status code might be 404 = url not found
+        }
+      } catch (e) {
+        debugPrint("Error during converting to Base64");
+        // print(e);
+        //there is error during converting file image to base64 encoding.
+      }
     } on PlatformException catch (e) {
       debugPrint('Failed to catch image: $e');
     }
@@ -227,6 +251,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 // upload image function
   Future pickImage() async {
     await Future.delayed(const Duration(seconds: 1));
+
     try {
       final image = await ImagePicker().pickImage(
         source: ImageSource.gallery,
@@ -241,12 +266,14 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       final bytes = Io.File(image.path.toString()).readAsBytesSync();
       String img64 = base64Encode(bytes);
       debugPrint(image.path.toString());
+      var response;
+      var responseJson;
 
       var url = Uri.parse('https://api.platerecognizer.com/v1/plate-reader/');
       debugPrint('start');
       debugPrint(img64);
       debugPrint('end');
-      var response = await http.post(url, body: {
+      response = await http.post(url, body: {
         'upload': img64,
       }, headers: {
         "Authorization": "Token 497717d5ef388c529bc0eaa84f6924baa3a4acbf"
@@ -257,7 +284,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
       //get the converted text
       setState(() {
-        final responseJson = json.decode(response.body);
+        responseJson = json.decode(response.body);
         if (responseJson["results"].isEmpty!) {
           globals = 'Unable to read result';
         } else {
@@ -272,8 +299,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         if (response.statusCode == 201) {
           String uploadurl =
               "https://npr.varainfrovate.com/upload-images/upload.php";
-          var result = await http.post((Uri.parse(uploadurl)),
-              body: {'image': img64, 'image_name': 'vpbai'});
+          var result = await http.post((Uri.parse(uploadurl)), body: {
+            'image': img64,
+            'image_name': globals,
+            'data': globals,
+          });
           debugPrint(result.body);
         } else {
           debugPrint("Error during connection to server");
